@@ -1,6 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
+from sklearn.neural_network import BernoulliRBM
 
 
 def load_data(filepath="dataset/customer_data.csv"):
@@ -31,6 +32,23 @@ def preprocess_data(df):
     return binary_data.values, feature_cols, medians
 
 
+def train_rbm1(X, n_components=4, learning_rate=0.08, n_iter=25, random_state=42):
+    """
+    Train the first Bernoulli RBM layer:
+    Maps 6 input binary features to 4 hidden representation units.
+    """
+    rbm1 = BernoulliRBM(
+        n_components=n_components,
+        learning_rate=learning_rate,
+        n_iter=n_iter,
+        random_state=random_state,
+        verbose=False
+    )
+    rbm1.fit(X)
+    hidden_1 = rbm1.transform(X)
+    return rbm1, hidden_1
+
+
 def main():
     print("=== Step 1: Loading Dataset ===")
     df = load_data()
@@ -43,8 +61,14 @@ def main():
         print(f"  {col}: {med:.2f}")
 
     print(f"\nPreprocessed binary shape: {X_bin.shape}")
-    print("Sample preprocessed records (first 3):")
-    print(X_bin[:3])
+
+    print("\n=== Step 3: Training RBM Layer 1 (6 -> 4) ===")
+    rbm1, hidden_1 = train_rbm1(X_bin)
+    print("RBM Layer 1 trained successfully.")
+    print(f"RBM 1 Hidden representation shape: {hidden_1.shape}")
+    print(f"RBM 1 Components (weights) shape: {rbm1.components_.shape}")
+    print("Sample RBM 1 hidden activations (first 3 records):")
+    print(np.round(hidden_1[:3], 4))
 
 
 if __name__ == "__main__":
