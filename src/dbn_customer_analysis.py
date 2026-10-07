@@ -136,6 +136,57 @@ def cluster_representation(hidden_2, original_df, n_clusters=3, random_state=42)
     return kmeans, labels, clustered_df, cluster_means
 
 
+def plot_cluster_visualization(h_df, labels, kmeans, output_path="results/cluster_visualization.png"):
+    """
+    Plot and save K-Means clusters formed in the 2D DBN hidden space.
+    """
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    plt.figure(figsize=(7, 5))
+    colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]
+    for c_id in np.unique(labels):
+        mask = labels == c_id
+        plt.scatter(
+            h_df.loc[mask, "hidden_dim_1"],
+            h_df.loc[mask, "hidden_dim_2"],
+            label=f"Cluster {c_id}",
+            color=colors[c_id % len(colors)],
+            alpha=0.8,
+            s=50,
+            edgecolors="none"
+        )
+
+    # Plot centroids
+    centers = kmeans.cluster_centers_
+    plt.scatter(
+        centers[:, 0],
+        centers[:, 1],
+        marker="X",
+        s=130,
+        color="red",
+        edgecolors="black",
+        linewidths=1.2,
+        label="Centroids"
+    )
+
+    plt.title("Customer Behavior Clusters (DBN Hidden Space)", fontsize=12, pad=12)
+    plt.xlabel("Hidden Dimension 1", fontsize=10)
+    plt.ylabel("Hidden Dimension 2", fontsize=10)
+    plt.legend(frameon=True)
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150)
+    plt.close()
+    print(f"Saved cluster visualization plot to {output_path}")
+
+
+def save_results(h_df, labels, kmeans):
+    """
+    Save both hidden representation and cluster visualization plots.
+    """
+    plot_hidden_representation(h_df)
+    plot_cluster_visualization(h_df, labels, kmeans)
+
+
 def main():
     print("=== Step 1: Loading Dataset ===")
     df = load_data()
@@ -155,10 +206,12 @@ def main():
 
     print("\n=== Step 4: Analyzing Hidden Representation ===")
     h_df = analyze_representation(hidden_2)
-    plot_hidden_representation(h_df)
 
     print("\n=== Step 5: Applying K-Means to Hidden Representation ===")
     kmeans, labels, clustered_df, cluster_means = cluster_representation(hidden_2, df, n_clusters=3)
+
+    print("\n=== Step 6: Saving Visualizations ===")
+    save_results(h_df, labels, kmeans)
 
 
 if __name__ == "__main__":
