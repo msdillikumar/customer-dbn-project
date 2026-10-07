@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from sklearn.neural_network import BernoulliRBM
+from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 
 
@@ -104,6 +105,37 @@ def plot_hidden_representation(h_df, output_path="results/hidden_representation.
     print(f"Saved hidden representation plot to {output_path}")
 
 
+def cluster_representation(hidden_2, original_df, n_clusters=3, random_state=42):
+    """
+    Apply K-Means clustering to the learned 2D hidden representation.
+    Calculates cluster statistics on original customer features.
+    """
+    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
+    labels = kmeans.fit_predict(hidden_2)
+
+    clustered_df = original_df.copy()
+    clustered_df["cluster"] = labels
+
+    print(f"\nDiscovered Clusters (k={n_clusters}):")
+    cluster_counts = pd.Series(labels).value_counts().sort_index()
+    for c_id, count in cluster_counts.items():
+        print(f"  Cluster {c_id}: {count} customers ({count / len(labels) * 100:.1f}%)")
+
+    feature_cols = [
+        "website_visits",
+        "purchase_frequency",
+        "average_spend",
+        "app_usage",
+        "support_requests",
+        "discount_usage"
+    ]
+    cluster_means = clustered_df.groupby("cluster")[feature_cols].mean().round(2)
+    print("\nCluster Feature Averages (Original Feature Values):")
+    print(cluster_means)
+
+    return kmeans, labels, clustered_df, cluster_means
+
+
 def main():
     print("=== Step 1: Loading Dataset ===")
     df = load_data()
@@ -124,6 +156,9 @@ def main():
     print("\n=== Step 4: Analyzing Hidden Representation ===")
     h_df = analyze_representation(hidden_2)
     plot_hidden_representation(h_df)
+
+    print("\n=== Step 5: Applying K-Means to Hidden Representation ===")
+    kmeans, labels, clustered_df, cluster_means = cluster_representation(hidden_2, df, n_clusters=3)
 
 
 if __name__ == "__main__":
