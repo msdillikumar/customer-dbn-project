@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from sklearn.neural_network import BernoulliRBM
+import matplotlib.pyplot as plt
 
 
 def load_data(filepath="dataset/customer_data.csv"):
@@ -66,6 +67,43 @@ def train_dbn(X, random_state=42):
     return rbm1, rbm2, hidden_1, hidden_2
 
 
+def analyze_representation(hidden_2):
+    """
+    Analyze and display statistics of the learned 2D hidden representation.
+    """
+    h_df = pd.DataFrame(hidden_2, columns=["hidden_dim_1", "hidden_dim_2"])
+    print("Hidden Representation Summary:")
+    print(f"  Dimension 1: mean={h_df['hidden_dim_1'].mean():.4f}, std={h_df['hidden_dim_1'].std():.4f}, "
+          f"min={h_df['hidden_dim_1'].min():.4f}, max={h_df['hidden_dim_1'].max():.4f}")
+    print(f"  Dimension 2: mean={h_df['hidden_dim_2'].mean():.4f}, std={h_df['hidden_dim_2'].std():.4f}, "
+          f"min={h_df['hidden_dim_2'].min():.4f}, max={h_df['hidden_dim_2'].max():.4f}")
+    return h_df
+
+
+def plot_hidden_representation(h_df, output_path="results/hidden_representation.png"):
+    """
+    Plot and save the 2D learned hidden representation using Matplotlib.
+    """
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    plt.figure(figsize=(7, 5))
+    plt.scatter(
+        h_df["hidden_dim_1"],
+        h_df["hidden_dim_2"],
+        color="#2b5c8f",
+        alpha=0.75,
+        edgecolors="none",
+        s=45
+    )
+    plt.title("Learned Customer Representation (DBN Hidden Space)", fontsize=12, pad=12)
+    plt.xlabel("Hidden Dimension 1", fontsize=10)
+    plt.ylabel("Hidden Dimension 2", fontsize=10)
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150)
+    plt.close()
+    print(f"Saved hidden representation plot to {output_path}")
+
+
 def main():
     print("=== Step 1: Loading Dataset ===")
     df = load_data()
@@ -82,9 +120,10 @@ def main():
     rbm1, rbm2, hidden_1, hidden_2 = train_dbn(X_bin)
     print("DBN Layer 1 (6 -> 4) representation shape:", hidden_1.shape)
     print("DBN Layer 2 (4 -> 2) representation shape:", hidden_2.shape)
-    print("\nSample learned 2D hidden representations (first 5 records):")
-    for i in range(5):
-        print(f"  Customer {i+1}: Dim 1 = {hidden_2[i, 0]:.4f}, Dim 2 = {hidden_2[i, 1]:.4f}")
+
+    print("\n=== Step 4: Analyzing Hidden Representation ===")
+    h_df = analyze_representation(hidden_2)
+    plot_hidden_representation(h_df)
 
 
 if __name__ == "__main__":
