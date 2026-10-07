@@ -32,21 +32,38 @@ def preprocess_data(df):
     return binary_data.values, feature_cols, medians
 
 
-def train_rbm1(X, n_components=4, learning_rate=0.08, n_iter=25, random_state=42):
+def train_dbn(X, random_state=42):
     """
-    Train the first Bernoulli RBM layer:
-    Maps 6 input binary features to 4 hidden representation units.
+    Train a 2-layer Deep Belief Network:
+      Layer 1: 6 visible inputs -> 4 hidden units
+      Layer 2: 4 hidden inputs  -> 2 hidden units
+    Returns trained RBM layers and learned representations.
     """
+    # RBM Layer 1 (6 -> 4)
     rbm1 = BernoulliRBM(
-        n_components=n_components,
-        learning_rate=learning_rate,
-        n_iter=n_iter,
+        n_components=4,
+        learning_rate=0.1,
+        n_iter=50,
+        batch_size=10,
         random_state=random_state,
         verbose=False
     )
     rbm1.fit(X)
     hidden_1 = rbm1.transform(X)
-    return rbm1, hidden_1
+
+    # RBM Layer 2 (4 -> 2)
+    rbm2 = BernoulliRBM(
+        n_components=2,
+        learning_rate=0.1,
+        n_iter=50,
+        batch_size=10,
+        random_state=random_state,
+        verbose=False
+    )
+    rbm2.fit(hidden_1)
+    hidden_2 = rbm2.transform(hidden_1)
+
+    return rbm1, rbm2, hidden_1, hidden_2
 
 
 def main():
@@ -59,16 +76,15 @@ def main():
     print("Feature medians used for thresholding:")
     for col, med in medians.items():
         print(f"  {col}: {med:.2f}")
+    print(f"Preprocessed binary shape: {X_bin.shape}")
 
-    print(f"\nPreprocessed binary shape: {X_bin.shape}")
-
-    print("\n=== Step 3: Training RBM Layer 1 (6 -> 4) ===")
-    rbm1, hidden_1 = train_rbm1(X_bin)
-    print("RBM Layer 1 trained successfully.")
-    print(f"RBM 1 Hidden representation shape: {hidden_1.shape}")
-    print(f"RBM 1 Components (weights) shape: {rbm1.components_.shape}")
-    print("Sample RBM 1 hidden activations (first 3 records):")
-    print(np.round(hidden_1[:3], 4))
+    print("\n=== Step 3: Training DBN (RBM 1: 6->4, RBM 2: 4->2) ===")
+    rbm1, rbm2, hidden_1, hidden_2 = train_dbn(X_bin)
+    print("DBN Layer 1 (6 -> 4) representation shape:", hidden_1.shape)
+    print("DBN Layer 2 (4 -> 2) representation shape:", hidden_2.shape)
+    print("\nSample learned 2D hidden representations (first 5 records):")
+    for i in range(5):
+        print(f"  Customer {i+1}: Dim 1 = {hidden_2[i, 0]:.4f}, Dim 2 = {hidden_2[i, 1]:.4f}")
 
 
 if __name__ == "__main__":
